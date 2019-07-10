@@ -1,6 +1,6 @@
 import json
 from flask_restful import Resource, Api, reqparse, inputs, fields, marshal, marshal_with, url_for
-from flask import jsonify, Blueprint, make_response
+from flask import jsonify, Blueprint, abort
 
 from models import Todo
 
@@ -63,9 +63,7 @@ class TodoTask(Resource):
         try:
             Todo.select().where(Todo.id == id).get()
         except:
-            return make_response(json.dumps(
-                    {'error': 'That todo does not exist or is not editable'}
-                ), 403)
+            return abort(403)
         else:
             query = Todo.update(**args).where(Todo.id == id)
             query.execute()
@@ -76,9 +74,7 @@ class TodoTask(Resource):
         try:
             Todo.select().where(Todo.id == id).get()
         except:
-            return make_response(json.dumps(
-                    {'error': 'That todo does not exist'}
-                ), 403)
+            return abort(403)
         else:
             query = Todo.delete().where(Todo.id == id)
             query.execute()
