@@ -3,6 +3,7 @@ from peewee import *
 
 DATABASE = SqliteDatabase('todoList.sqlite')
 
+
 class Todo(Model):
     name = CharField()
     completed = BooleanField(default=False)
