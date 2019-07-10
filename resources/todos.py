@@ -1,13 +1,16 @@
-from flask_restful import Resource, Api, reqparse, inputs, fields, marshal, marshal_with
-from flask import jsonify, Blueprint
+import json
+from flask_restful import Resource, Api, reqparse, inputs, fields, marshal, marshal_with, url_for
+from flask import jsonify, Blueprint, make_response
 
 from models import Todo
+
 
 todo_fields = {
     'id': fields.Integer,
     'name': fields.String,
     'completed': fields.Boolean
 }
+
 
 class TodoList(Resource):
     def __init__(self):
@@ -33,7 +36,9 @@ class TodoList(Resource):
     def post(self):
         args = self.reqparse.parse_args()
         todo = Todo.create(**args)
-        return todo, 201
+        return (todo, 201, {
+            'Location': url_for('resources.todos.todo', id=todo.id)
+        })
 
 
 class TodoTask(Resource):
@@ -51,19 +56,33 @@ class TodoTask(Resource):
             type=inputs.boolean
         )
         super().__init__()
-        
+
     @marshal_with(todo_fields)
     def put(self, id):
         args = self.reqparse.parse_args()
-        query = Todo.update(**args).where(Todo.id==id)
-        query.execute()
-        todo = Todo.get(Todo.id==id)
-        return todo, 200
-    
+        try:
+            Todo.select().where(Todo.id == id).get()
+        except:
+            return make_response(json.dumps(
+                    {'error': 'That todo does not exist or is not editable'}
+                ), 403)
+        else:
+            query = Todo.update(**args).where(Todo.id == id)
+            query.execute()
+            todo = Todo.get(Todo.id == id)
+            return todo, 200
+
     def delete(self, id):
-        todo = Todo.delete().where(Todo.id==id)
-        todo.execute()
-        return 204
+        try:
+            Todo.select().where(Todo.id == id).get()
+        except:
+            return make_response(json.dumps(
+                    {'error': 'That todo does not exist'}
+                ), 403)
+        else:
+            query = Todo.delete().where(Todo.id == id)
+            query.execute()
+            return '', 204, {'Location': url_for('resources.todos.todos')}
 
 
 todos_api = Blueprint('resources.todos', __name__)
